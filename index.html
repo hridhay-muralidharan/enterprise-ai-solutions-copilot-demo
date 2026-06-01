@@ -1,0 +1,989 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Healthcare Collections Self-Service Operating Simulation</title>
+    <style>
+      :root {
+        --bg: #f4f6f4;
+        --surface: #ffffff;
+        --surface-alt: #edf2ef;
+        --ink: #17211d;
+        --muted: #53615b;
+        --line: #c9d5cf;
+        --teal: #1f766d;
+        --blue: #245a7a;
+        --gold: #9a6a16;
+        --red: #9a4b4b;
+        --shadow: 0 18px 36px rgba(23, 33, 29, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--bg);
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        line-height: 1.5;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      a {
+        color: var(--blue);
+      }
+
+      .app {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 22px;
+      }
+
+      .topbar {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 176px;
+        gap: 18px;
+        align-items: end;
+        padding-bottom: 18px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 8px;
+        font-size: clamp(2rem, 4vw, 3.9rem);
+        line-height: 1.04;
+      }
+
+      h2 {
+        margin-bottom: 10px;
+        font-size: 1.2rem;
+      }
+
+      h3 {
+        margin-bottom: 8px;
+        font-size: 1rem;
+      }
+
+      .subhead {
+        max-width: 780px;
+        color: var(--muted);
+        margin-bottom: 0;
+      }
+
+      .readiness {
+        padding: 14px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .readiness .score {
+        display: block;
+        font-size: 2.35rem;
+        font-weight: 850;
+        line-height: 1;
+      }
+
+      .readiness .label {
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 16px;
+      }
+
+      .tab-button {
+        min-height: 38px;
+        padding: 7px 12px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--ink);
+        cursor: pointer;
+        font-weight: 780;
+      }
+
+      .tab-button.active {
+        background: var(--ink);
+        color: #fff;
+      }
+
+      .tab-panel {
+        display: none;
+      }
+
+      .tab-panel.active {
+        display: block;
+      }
+
+      .instructions {
+        margin-top: 18px;
+      }
+
+      .instructions-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(280px, 0.7fr);
+        gap: 16px;
+      }
+
+      .instructions p,
+      .instructions li {
+        color: var(--muted);
+      }
+
+      .instructions ol,
+      .instructions ul {
+        margin-top: 0;
+      }
+
+      .simulator {
+        margin-top: 18px;
+      }
+
+      .simulator-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 12px;
+      }
+
+      .operations {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+        margin-top: 18px;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+
+      .panel-head {
+        padding: 14px;
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .panel-body {
+        padding: 14px;
+      }
+
+      .eyebrow {
+        margin: 0 0 8px;
+        color: var(--teal);
+        font-size: 0.74rem;
+        font-weight: 820;
+        letter-spacing: 0.11em;
+        text-transform: uppercase;
+      }
+
+      .board {
+        display: grid;
+        gap: 8px;
+      }
+
+      .workstream {
+        width: 100%;
+        min-height: 72px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--ink);
+        text-align: left;
+        cursor: pointer;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+      }
+
+      .workstream.active {
+        border-color: var(--teal);
+        box-shadow: inset 4px 0 0 var(--teal);
+      }
+
+      .workstream strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .note {
+        color: var(--muted);
+        font-size: 0.86rem;
+      }
+
+      .status {
+        align-self: start;
+        white-space: nowrap;
+        padding: 4px 7px;
+        border: 1px solid var(--line);
+        background: var(--surface-alt);
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 800;
+      }
+
+      .status.blocked,
+      .status.at_risk {
+        color: var(--red);
+      }
+
+      .status.retry_needed,
+      .status.missing_evidence {
+        color: var(--gold);
+      }
+
+      .status.ready_for_review,
+      .status.approved,
+      .status.pilot_candidate {
+        color: var(--teal);
+      }
+
+      .prompt-card {
+        padding: 16px;
+        border: 1px solid var(--line);
+        background: var(--surface-alt);
+      }
+
+      .prompt-card.user {
+        background: #ffffff;
+      }
+
+      .prompt-card strong {
+        display: block;
+        margin-bottom: 8px;
+        color: var(--blue);
+      }
+
+      .prompt-card p:last-child {
+        margin-bottom: 0;
+      }
+
+      .affected {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+
+      .chip {
+        padding: 5px 8px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 760;
+      }
+
+      .controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+      }
+
+      .control {
+        min-width: 106px;
+        min-height: 40px;
+        border: 1px solid var(--line);
+        background: var(--ink);
+        color: #fff;
+        cursor: pointer;
+        font-weight: 780;
+      }
+
+      .control.secondary {
+        background: var(--surface);
+        color: var(--ink);
+      }
+
+      .control:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+
+      .step-count {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .detail-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .detail-cell {
+        min-height: 104px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+      }
+
+      .detail-cell h3 {
+        color: var(--blue);
+        font-size: 0.78rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 18px;
+      }
+
+      li {
+        margin-bottom: 7px;
+      }
+
+      .empty {
+        color: var(--muted);
+        font-style: italic;
+      }
+
+      @media (max-width: 980px) {
+        .topbar,
+        .instructions-grid,
+        .simulator-grid,
+        .operations {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <h1>Healthcare Collections Self-Service Operating Simulation</h1>
+          <p class="subhead">A simulated copilot conversation that converts raw client inputs into structured workstream updates across the enterprise AI operating model. <a href="https://www.uniphore.com/resources/case-studies/state-collections/">Open public case signal</a>.</p>
+        </div>
+        <aside class="readiness" aria-label="Readiness score">
+          <span id="readinessScore" class="score">0%</span>
+          <span id="readinessLabel" class="label">Not started</span>
+        </aside>
+      </header>
+
+      <nav class="tabs" aria-label="Page tabs">
+        <button id="mainTabBtn" class="tab-button active" type="button">Simulator</button>
+        <button id="readFirstTabBtn" class="tab-button" type="button">Read this first</button>
+      </nav>
+
+      <section id="readFirstPanel" class="tab-panel">
+        <article class="panel instructions">
+          <div class="panel-head">
+            <p class="eyebrow">Read This First</p>
+            <h2>How to use this simulation</h2>
+          </div>
+          <div class="panel-body">
+            <div class="instructions-grid">
+              <div>
+                <p>This is an interactive operating simulation for a healthcare collections self-service AI project.</p>
+                <p>The goal is to show how a solutions copilot could help a team convert messy client inputs into a structured enterprise AI delivery model across 10 workstreams: business problem, workflow intake, data, knowledge, model, agent, orchestration, governance, implementation, and value/failure tracking.</p>
+                <ol>
+                  <li>Start with the Copilot Simulator.</li>
+                  <li>Read the user prompt as if it came from a client discovery call, IT update, compliance review, or implementation discussion.</li>
+                  <li>Read the copilot interpretation.</li>
+                  <li>Click Apply to see how the copilot updates the workstream board.</li>
+                  <li>Click Next to move to the next project input.</li>
+                  <li>Watch how the readiness percentage, workstream statuses, and selected workstream detail change.</li>
+                  <li>Click any workstream to inspect what has been logged, what is missing, what risks were flagged, what decisions were made, and what questions should be asked next.</li>
+                </ol>
+              </div>
+              <div>
+                <h3>What to notice</h3>
+                <ul>
+                  <li>The simulation is intentionally not purely linear.</li>
+                  <li>New information can move the project forward, reveal blockers, force retries, narrow scope, or change readiness.</li>
+                  <li>The point is not just to build an agent. The point is workflow diagnosis, evidence gathering, governance, implementation fit, and production value validation.</li>
+                  <li>This uses a public Uniphore-style healthcare collections case as the base scenario. The details are modeled as a simulation, not as a claim about Uniphore's internal implementation.</li>
+                </ul>
+                <h3>What it demonstrates</h3>
+                <ul>
+                  <li>workflow-first enterprise AI diagnosis</li>
+                  <li>structured handling of branches, exceptions, risks, and retries</li>
+                  <li>lower cognitive load for solutions teams</li>
+                  <li>better consistency across client projects</li>
+                  <li>a way for users to internalize the operating model over repeated project inputs</li>
+                </ul>
+                <button id="returnToSimulatorBtn" class="control" type="button">Return to simulator</button>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section id="mainPanel" class="tab-panel active">
+        <section class="panel simulator">
+          <div class="panel-head">
+            <p class="eyebrow">Copilot Simulator</p>
+            <h2 id="stepTitle"></h2>
+          </div>
+          <div class="panel-body">
+            <div class="simulator-grid">
+              <div class="prompt-card user">
+                <strong>User prompt</strong>
+                <p id="userPrompt"></p>
+              </div>
+              <div class="prompt-card">
+                <strong>Copilot interpretation</strong>
+                <p id="copilotResponse"></p>
+                <div id="affected" class="affected"></div>
+              </div>
+            </div>
+            <div class="controls">
+              <button id="backBtn" class="control secondary" type="button">Back</button>
+              <button id="applyBtn" class="control" type="button">Apply</button>
+              <button id="nextBtn" class="control secondary" type="button">Next</button>
+              <button id="resetBtn" class="control secondary" type="button">Reset</button>
+              <span id="stepCount" class="step-count"></span>
+            </div>
+          </div>
+        </section>
+
+        <section class="operations">
+          <aside class="panel">
+            <div class="panel-head">
+              <p class="eyebrow">Workstreams</p>
+              <h2>Workstream board</h2>
+            </div>
+            <div class="panel-body">
+              <div id="board" class="board"></div>
+            </div>
+          </aside>
+
+          <section class="panel detail">
+            <div class="panel-head">
+              <p class="eyebrow">Selected Workstream Detail</p>
+              <h2 id="detailTitle"></h2>
+            </div>
+            <div class="panel-body">
+              <div class="detail-grid">
+                <section class="detail-cell">
+                  <h3>Logged Evidence</h3>
+                  <ul id="loggedEvidence"></ul>
+                </section>
+                <section class="detail-cell">
+                  <h3>Missing Evidence</h3>
+                  <ul id="missingEvidence"></ul>
+                </section>
+                <section class="detail-cell">
+                  <h3>Risks Flagged</h3>
+                  <ul id="risksFlagged"></ul>
+                </section>
+                <section class="detail-cell">
+                  <h3>Decisions Made</h3>
+                  <ul id="decisionsMade"></ul>
+                </section>
+                <section class="detail-cell">
+                  <h3>Next Questions</h3>
+                  <ul id="nextQuestions"></ul>
+                </section>
+              </div>
+            </div>
+          </section>
+        </section>
+      </section>
+    </main>
+
+    <script>
+      const payload = {"caseTitle": "Healthcare Collections Self-Service", "sourceUrl": "https://www.uniphore.com/resources/case-studies/state-collections/", "workstreams": ["Business Problem", "Workflow Intake", "Data Layer", "Knowledge Layer", "Model Layer", "Agentic Layer", "Orchestration", "Governance", "Implementation", "Value And Failure"]};
+      const workstreamNames = payload.workstreams;
+
+      const steps = [
+        {
+          title: "Initial workflow opportunity",
+          readiness: 24,
+          label: "Opportunity framed",
+          prompt: "The collections team wants to reduce live-agent load on high-volume inbound and outbound payment interactions. Many callers only need balance confirmation, demographic updates, insurance updates, or payment support.",
+          response: "This is a Business Problem and Workflow Intake input. The opportunity is directionally strong, but the copilot should not design the agent yet. It should first log the target workflow, value hypothesis, and missing baseline metrics.",
+          affected: ["Business Problem", "Workflow Intake", "Value And Failure"],
+          select: "Business Problem",
+          updates: {
+            "Business Problem": {
+              status: "in_discovery",
+              note: "High-volume collections workflow identified.",
+              logged: ["Target workflow: high-volume collections payment/account interactions.", "Business goal: reduce live-agent load."],
+              missing: ["Baseline interaction volume.", "Current cost per interaction.", "Current collection recovery rate.", "Named business owner."],
+              risks: ["The team may optimize containment without proving collections or customer experience value."],
+              questions: ["Which interaction types have the highest value and safest automation potential?"]
+            },
+            "Workflow Intake": {
+              status: "in_discovery",
+              note: "Happy path needs mapping.",
+              logged: ["Likely user needs include balance confirmation, demographic update, insurance update, and payment support."],
+              missing: ["Trigger paths.", "Authentication process.", "Start and end states.", "Human handoff points."],
+              questions: ["What exactly happens from account contact to closure or escalation?"]
+            },
+            "Value And Failure": {
+              status: "missing_evidence",
+              note: "Baseline not defined.",
+              missing: ["Containment baseline.", "Recovery baseline.", "Failure-rate definition."],
+              risks: ["Demo success may be mistaken for production value."]
+            }
+          }
+        },
+        {
+          title: "Exceptions surface",
+          readiness: 31,
+          label: "Workflow retry needed",
+          prompt: "Operations says disputes, hardship conversations, confused insurance responsibility, failed payment attempts, and angry callers should go to a human agent.",
+          response: "This changes the workflow shape. The copilot should move Workflow Intake into retry-needed, because exception paths now define the safe automation boundary. It should also flag Orchestration because handoff state and escalation rules are now required.",
+          affected: ["Workflow Intake", "Orchestration", "Agentic Layer"],
+          select: "Workflow Intake",
+          updates: {
+            "Workflow Intake": {
+              status: "retry_needed",
+              note: "Exception paths changed scope.",
+              logged: ["Exceptions: disputes, hardship, insurance ambiguity, failed payment, angry caller."],
+              missing: ["Branch logic for each exception.", "Human escalation criteria.", "SLA for urgent or angry-caller paths."],
+              risks: ["The original happy path is too simple for safe automation."],
+              questions: ["Which exception paths must bypass self-service immediately?"]
+            },
+            "Orchestration": {
+              status: "missing_evidence",
+              note: "Branches and handoffs required.",
+              missing: ["State transitions.", "Handoff payload.", "Retry path.", "Escalation path."],
+              risks: ["The agent may work in isolation while the end-to-end process breaks."]
+            },
+            "Agentic Layer": {
+              status: "missing_evidence",
+              note: "Autonomy depends on exceptions.",
+              missing: ["Allowed actions.", "Denied actions.", "Escalation triggers."],
+              risks: ["Agent autonomy cannot be defined until exception paths are bounded."]
+            }
+          }
+        },
+        {
+          title: "Data access narrows the pilot",
+          readiness: 44,
+          label: "Partial feasibility",
+          prompt: "IT says read access is available for account balance, demographics, insurance status, and payment history. Write access is constrained. Payment capture cannot be enabled in the first pilot.",
+          response: "This primarily updates Data Layer and Agentic Layer. The copilot should improve data feasibility, but narrow the pilot. The first version can support read-only lookup and low-risk update collection, while payment capture must remain human-led.",
+          affected: ["Data Layer", "Agentic Layer", "Implementation"],
+          select: "Data Layer",
+          updates: {
+            "Data Layer": {
+              status: "missing_evidence",
+              note: "Read access confirmed; write constrained.",
+              logged: ["Read access available for balance, demographics, insurance status, and payment history."],
+              missing: ["Write approval for demographic updates.", "Validation path for insurance updates.", "Security review for payment capture."],
+              risks: ["Pilot scope may be overpromised if write/payment constraints are ignored."],
+              questions: ["Which fields can be read, prepared for update, updated directly, or routed to a human?"]
+            },
+            "Agentic Layer": {
+              status: "at_risk",
+              note: "Payment capture excluded.",
+              logged: ["Payment capture cannot be enabled in first pilot."],
+              decisions: ["Do not allow autonomous payment capture in v1."],
+              risks: ["If the agent promises payment completion, it will exceed approved system capability."]
+            },
+            "Implementation": {
+              status: "missing_evidence",
+              note: "Integration constraints affect scope.",
+              missing: ["Pilot integration plan.", "Fallback path for payment capture.", "Owner for write-access approval."]
+            }
+          }
+        },
+        {
+          title: "Compliance blocks action scope",
+          readiness: 38,
+          label: "Governance blocked",
+          prompt: "Compliance is concerned that the self-service agent may accept payments or update account fields without a clear audit trail.",
+          response: "This should block Governance and push Agentic Layer backward. The copilot should require audit fields, review boundaries, and action rules before payment or account updates are permitted.",
+          affected: ["Governance", "Agentic Layer", "Orchestration"],
+          select: "Governance",
+          updates: {
+            "Governance": {
+              status: "blocked",
+              note: "Audit trail required.",
+              logged: ["Compliance requires audit trail for payment/account actions."],
+              missing: ["Authentication status.", "Source data used.", "Consent language.", "Customer confirmation.", "Changed field/payment state.", "Timestamp.", "Escalation reason."],
+              risks: ["Payment/account actions may fail compliance review."],
+              questions: ["What must be logged before the agent can update account or payment state?"]
+            },
+            "Agentic Layer": {
+              status: "retry_needed",
+              note: "Action boundary must be redesigned.",
+              missing: ["Read-only vs recommend vs prepare-for-review vs act boundary."],
+              risks: ["Agent autonomy is too broad until governance controls are defined."]
+            },
+            "Orchestration": {
+              status: "missing_evidence",
+              note: "Audit-aware handoff needed.",
+              missing: ["Audit-aware handoff path.", "Compliance exception path."]
+            }
+          }
+        },
+        {
+          title: "Agent boundary corrected",
+          readiness: 56,
+          label: "Bounded pilot shape",
+          prompt: "Can we let the agent handle balance lookup, collect simple demographic updates, prepare insurance/payment workflows, and escalate payment capture or sensitive exceptions?",
+          response: "This is the right bounded-agent proposal. The copilot should move Agentic Layer toward review, keep Governance under review, and require Orchestration to define handoff payloads for all excluded actions.",
+          affected: ["Agentic Layer", "Governance", "Orchestration"],
+          select: "Agentic Layer",
+          updates: {
+            "Agentic Layer": {
+              status: "ready_for_review",
+              note: "Bounded self-service scope.",
+              logged: ["Agent can support balance lookup after authentication.", "Agent can collect low-risk update information.", "Payment capture and sensitive exceptions escalate."],
+              decisions: ["V1 excludes autonomous payment capture.", "Sensitive exceptions remain human-led."],
+              missing: ["Final allowed-tool list.", "Confidence thresholds.", "Escalation trigger wording."]
+            },
+            "Governance": {
+              status: "ready_for_review",
+              note: "Controls shape autonomy.",
+              decisions: ["Read-only balance lookup can proceed earlier than payment capture if authentication is verified."],
+              missing: ["Compliance sign-off on bounded pilot scope."]
+            },
+            "Orchestration": {
+              status: "missing_evidence",
+              note: "Handoff payload still needed.",
+              missing: ["Payload for payment capture handoff.", "Payload for dispute/hardship handoff.", "Process validation checks."]
+            }
+          }
+        },
+        {
+          title: "Implementation exposes adoption risk",
+          readiness: 49,
+          label: "Implementation blocked",
+          prompt: "The pilot team wants a standalone web experience first. Operations worries agents will not trust handoffs unless the summary appears inside the existing collections workspace.",
+          response: "This is an Implementation and Orchestration issue. The copilot should flag adoption risk because the workflow may be technically valid but operationally ignored if it does not land inside the existing workspace.",
+          affected: ["Implementation", "Orchestration", "Workflow Intake"],
+          select: "Implementation",
+          updates: {
+            "Implementation": {
+              status: "blocked",
+              note: "Standalone pilot may not fit daily work.",
+              logged: ["Operations wants handoff summaries inside the existing collections workspace."],
+              missing: ["Workspace integration path.", "Training plan for pilot users.", "Support owner.", "Integration owner availability."],
+              risks: ["A standalone pilot may produce weak adoption and low trust."],
+              questions: ["Where must the handoff summary appear for agents to trust and use it?"]
+            },
+            "Orchestration": {
+              status: "retry_needed",
+              note: "Handoff trust depends on tool placement.",
+              risks: ["Handoff may lose context if it does not appear inside the existing operating workspace."],
+              missing: ["Handoff summary format.", "State preservation between self-service and live-agent workspace."]
+            }
+          }
+        },
+        {
+          title: "Value metric corrected",
+          readiness: 64,
+          label: "Scorecard defined",
+          prompt: "The sponsor asked for containment as the main metric. Operations wants successful completion, escalation quality, failed payment rate, repeat contact within 7 days, compliance exceptions, and live-agent handle time for escalated cases.",
+          response: "The copilot should update Value And Failure. This is a stronger production scorecard because it measures whether automation improves the workflow without hiding failures.",
+          affected: ["Value And Failure", "Business Problem", "Governance"],
+          select: "Value And Failure",
+          updates: {
+            "Value And Failure": {
+              status: "ready_for_review",
+              note: "Balanced scorecard defined.",
+              logged: ["Metrics: successful completion, containment, escalation quality, failed payment rate, repeat contact, compliance exceptions, escalated handle time."],
+              decisions: ["Use balanced production scorecard instead of containment alone."],
+              missing: ["Prior-month baseline.", "Pilot acceptance thresholds."],
+              risks: ["Containment alone could hide poor service, failed payment, or compliance failure."]
+            },
+            "Business Problem": {
+              status: "ready_for_review",
+              note: "Value hypothesis is clearer.",
+              decisions: ["Evaluate value through recovery, quality, adoption, and failure signals."]
+            }
+          }
+        },
+        {
+          title: "Pilot readiness check",
+          readiness: 72,
+          label: "Scoped pilot candidate",
+          prompt: "Given the constraints, are we ready for pilot?",
+          response: "The copilot should not call this full automation ready. It is a scoped pilot candidate if payment capture is excluded, sensitive exceptions escalate, audit logging is approved, handoff summaries fit the collections workspace, and the balanced scorecard is used.",
+          affected: ["Orchestration", "Implementation", "Governance", "Value And Failure"],
+          select: "Orchestration",
+          updates: {
+            "Business Problem": {
+              status: "approved",
+              note: "Pilot value is bounded and measurable."
+            },
+            "Workflow Intake": {
+              status: "approved",
+              note: "Core and exception paths are mapped."
+            },
+            "Data Layer": {
+              status: "ready_for_review",
+              note: "Pilot scoped around available data access."
+            },
+            "Knowledge Layer": {
+              status: "ready_for_review",
+              note: "Rules/scripts need final sign-off."
+            },
+            "Model Layer": {
+              status: "ready_for_review",
+              note: "Model use stays inside bounded tasks."
+            },
+            "Agentic Layer": {
+              status: "approved",
+              note: "Autonomy is bounded."
+            },
+            "Orchestration": {
+              status: "ready_for_review",
+              note: "Pilot requires explicit handoff and escalation rules.",
+              decisions: ["Proceed only as scoped pilot, not broad automation."],
+              missing: ["Final handoff summary validation."]
+            },
+            "Governance": {
+              status: "ready_for_review",
+              note: "Audit gate required before launch."
+            },
+            "Implementation": {
+              status: "ready_for_review",
+              note: "Workspace handoff plan required."
+            },
+            "Value And Failure": {
+              status: "approved",
+              note: "Production scorecard defined."
+            }
+          }
+        }
+      ];
+
+      let selected = "Business Problem";
+      let currentStep = 0;
+      let appliedThrough = -1;
+      let state = createInitialState();
+
+      const els = {
+        board: document.getElementById("board"),
+        readinessScore: document.getElementById("readinessScore"),
+        readinessLabel: document.getElementById("readinessLabel"),
+        stepTitle: document.getElementById("stepTitle"),
+        userPrompt: document.getElementById("userPrompt"),
+        copilotResponse: document.getElementById("copilotResponse"),
+        affected: document.getElementById("affected"),
+        backBtn: document.getElementById("backBtn"),
+        applyBtn: document.getElementById("applyBtn"),
+        nextBtn: document.getElementById("nextBtn"),
+        resetBtn: document.getElementById("resetBtn"),
+        stepCount: document.getElementById("stepCount"),
+        mainTabBtn: document.getElementById("mainTabBtn"),
+        readFirstTabBtn: document.getElementById("readFirstTabBtn"),
+        returnToSimulatorBtn: document.getElementById("returnToSimulatorBtn"),
+        mainPanel: document.getElementById("mainPanel"),
+        readFirstPanel: document.getElementById("readFirstPanel"),
+        detailTitle: document.getElementById("detailTitle"),
+        loggedEvidence: document.getElementById("loggedEvidence"),
+        missingEvidence: document.getElementById("missingEvidence"),
+        risksFlagged: document.getElementById("risksFlagged"),
+        decisionsMade: document.getElementById("decisionsMade"),
+        nextQuestions: document.getElementById("nextQuestions")
+      };
+
+      function showTab(tabName) {
+        const showMain = tabName === "main";
+        els.mainPanel.classList.toggle("active", showMain);
+        els.readFirstPanel.classList.toggle("active", !showMain);
+        els.mainTabBtn.classList.toggle("active", showMain);
+        els.readFirstTabBtn.classList.toggle("active", !showMain);
+      }
+
+      function createInitialState() {
+        const initial = {};
+        workstreamNames.forEach((name) => {
+          initial[name] = {
+            status: "not_started",
+            note: "No input applied yet.",
+            logged: [],
+            missing: [],
+            risks: [],
+            decisions: [],
+            questions: []
+          };
+        });
+        return initial;
+      }
+
+      function statusLabel(status) {
+        return status.replaceAll("_", " ").replace(/\b\w/g, (char) => char.toUpperCase());
+      }
+
+      function addUnique(list, item) {
+        if (!list.includes(item)) {
+          list.push(item);
+        }
+      }
+
+      function applyUpdate(target, update) {
+        if (update.status) {
+          target.status = update.status;
+        }
+        if (update.note) {
+          target.note = update.note;
+        }
+        ["logged", "missing", "risks", "decisions", "questions"].forEach((field) => {
+          if (update[field]) {
+            update[field].forEach((item) => addUnique(target[field], item));
+          }
+        });
+      }
+
+      function rebuildState() {
+        state = createInitialState();
+        for (let index = 0; index <= appliedThrough; index += 1) {
+          Object.entries(steps[index].updates).forEach(([name, update]) => {
+            applyUpdate(state[name], update);
+          });
+        }
+
+        if (appliedThrough >= 0) {
+          const latest = steps[appliedThrough];
+          els.readinessScore.textContent = latest.readiness + "%";
+          els.readinessLabel.textContent = latest.label;
+        } else {
+          els.readinessScore.textContent = "0%";
+          els.readinessLabel.textContent = "Not started";
+        }
+      }
+
+      function renderBoard() {
+        els.board.innerHTML = "";
+        workstreamNames.forEach((name) => {
+          const item = state[name];
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "workstream" + (name === selected ? " active" : "");
+
+          const text = document.createElement("span");
+          const title = document.createElement("strong");
+          title.textContent = name;
+          const note = document.createElement("span");
+          note.className = "note";
+          note.textContent = item.note;
+          text.appendChild(title);
+          text.appendChild(note);
+
+          const status = document.createElement("span");
+          status.className = "status " + item.status;
+          status.textContent = statusLabel(item.status);
+
+          button.appendChild(text);
+          button.appendChild(status);
+          button.addEventListener("click", () => {
+            selected = name;
+            render();
+          });
+          els.board.appendChild(button);
+        });
+      }
+
+      function renderList(element, items) {
+        element.innerHTML = "";
+        if (!items.length) {
+          const li = document.createElement("li");
+          li.className = "empty";
+          li.textContent = "No entries yet.";
+          element.appendChild(li);
+          return;
+        }
+        items.forEach((item) => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          element.appendChild(li);
+        });
+      }
+
+      function renderDetail() {
+        const item = state[selected];
+        els.detailTitle.textContent = selected;
+        renderList(els.loggedEvidence, item.logged);
+        renderList(els.missingEvidence, item.missing);
+        renderList(els.risksFlagged, item.risks);
+        renderList(els.decisionsMade, item.decisions);
+        renderList(els.nextQuestions, item.questions);
+      }
+
+      function renderSimulator() {
+        const step = steps[currentStep];
+        els.stepTitle.textContent = step.title;
+        els.userPrompt.textContent = step.prompt;
+        els.copilotResponse.textContent = step.response;
+        els.affected.innerHTML = "";
+        step.affected.forEach((name) => {
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.textContent = name;
+          els.affected.appendChild(chip);
+        });
+        els.stepCount.textContent = "Prompt " + (currentStep + 1) + " of " + steps.length;
+        els.backBtn.disabled = currentStep === 0;
+        els.applyBtn.disabled = appliedThrough >= currentStep;
+        els.applyBtn.textContent = appliedThrough >= currentStep ? "Applied" : "Apply";
+        els.nextBtn.disabled = currentStep >= steps.length - 1 || appliedThrough < currentStep;
+      }
+
+      function render() {
+        renderBoard();
+        renderDetail();
+        renderSimulator();
+      }
+
+      els.applyBtn.addEventListener("click", () => {
+        appliedThrough = Math.max(appliedThrough, currentStep);
+        selected = steps[currentStep].select;
+        rebuildState();
+        render();
+      });
+
+      els.nextBtn.addEventListener("click", () => {
+        if (currentStep < steps.length - 1 && appliedThrough >= currentStep) {
+          currentStep += 1;
+          selected = steps[currentStep].select;
+          render();
+        }
+      });
+
+      els.backBtn.addEventListener("click", () => {
+        if (currentStep > 0) {
+          currentStep -= 1;
+          appliedThrough = currentStep;
+          selected = steps[currentStep].select;
+          rebuildState();
+          render();
+        }
+      });
+
+      els.resetBtn.addEventListener("click", () => {
+        currentStep = 0;
+        appliedThrough = -1;
+        selected = "Business Problem";
+        rebuildState();
+        render();
+      });
+
+      els.mainTabBtn.addEventListener("click", () => showTab("main"));
+      els.readFirstTabBtn.addEventListener("click", () => showTab("read-first"));
+      els.returnToSimulatorBtn.addEventListener("click", () => showTab("main"));
+
+      rebuildState();
+      render();
+    </script>
+  </body>
+</html>
